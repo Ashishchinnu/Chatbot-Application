@@ -1,0 +1,254 @@
+{
+  "name": "ChatBot Message Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send-message",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-start",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract data from webhook\nconst chatId = $json.body.input.chat_id;\nconst userId = $json.body.session_variables['x-hasura-user-id'];\nconst message = $json.body.input.message;\n\nreturn {\n  chat_id: chatId,\n  user_id: userId,\n  message: message,\n  hasura_headers: {\n    'x-hasura-admin-secret': 'your-admin-secret',\n    'Content-Type': 'application/json'\n  }\n};"
+      },
+      "id": "extract-data",
+      "name": "Extract Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://your-nhost-subdomain.nhost.run/v1/graphql",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-hasura-admin-secret",
+              "value": "your-admin-secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "query GetChat($chatId: uuid!) { chats_by_pk(id: $chatId) { id user_id } }"
+            },
+            {
+              "name": "variables",
+              "value": "={{ { \"chatId\": $json.chat_id } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validate-chat",
+      "name": "Validate Chat Ownership",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.data.chats_by_pk.user_id }}",
+              "operation": "equal",
+              "value2": "={{ $('Extract Data').first().json.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "check-ownership",
+      "name": "Check Ownership",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_OPENROUTER_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "meta-llama/llama-3.2-3b-instruct:free"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [{ \"role\": \"user\", \"content\": $('Extract Data').first().json.message }] }}"
+            }
+          ]
+        }
+      },
+      "id": "openrouter-api",
+      "name": "OpenRouter API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://your-nhost-subdomain.nhost.run/v1/graphql",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-hasura-admin-secret",
+              "value": "your-admin-secret"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "mutation AddMessage($chatId: uuid!, $content: String!) { insert_messages_one(object: {chat_id: $chatId, content: $content, is_bot: true}) { id } }"
+            },
+            {
+              "name": "variables",
+              "value": "={{ { \"chatId\": $('Extract Data').first().json.chat_id, \"content\": $json.choices[0].message.content } }}"
+            }
+          ]
+        }
+      },
+      "id": "save-response",
+      "name": "Save Bot Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Response generated successfully\", \"response\": $('OpenRouter API').first().json.choices[0].message.content } }}"
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"message\": \"Unauthorized: You don't have access to this chat\" } }}"
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Chat Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Chat Ownership": {
+      "main": [
+        [
+          {
+            "node": "Check Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Ownership": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter API": {
+      "main": [
+        [
+          {
+            "node": "Save Bot Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Bot Response": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

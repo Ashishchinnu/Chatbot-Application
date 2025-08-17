@@ -1,0 +1,20 @@
+{
+  "name": "sendMessage",
+  "definition": {
+    "kind": "synchronous",
+    "handler": "https://your-n8n-instance.com/webhook/send-message",
+    "forward_client_headers": true,
+    "headers": [
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      }
+    ]
+  },
+  "comment": "Send message to chatbot and get AI response",
+  "permissions": [
+    {
+      "role": "user"
+    }
+  ]
+}
