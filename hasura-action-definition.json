@@ -2,7 +2,7 @@
   "name": "sendMessage",
   "definition": {
     "kind": "synchronous",
-    "handler": "https://your-n8n-instance.com/webhook/send-message",
+    "handler": "https://ashishreddya.app.n8n.cloud/webhook/send-message",
     "forward_client_headers": true,
     "headers": [
       {

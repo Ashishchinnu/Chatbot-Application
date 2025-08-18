@@ -1,21 +1,26 @@
-import React from 'react';
-import { NhostProvider } from '@nhost/react';
-import { NhostApolloProvider } from '@nhost/react-apollo';
-import { nhost } from './config/nhost';
-import { apolloClient } from './config/apollo';
-import { AuthWrapper } from './components/auth/AuthWrapper';
-import { ChatApplication } from './components/ChatApplication';
+// src/App.tsx
+import { Routes, Route } from 'react-router-dom'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+import SignInPage from './components/auth/SignInPage'
+import SignUpPage from './components/auth/SignUpPage'
+import { ChatApplication } from "d:/Chatbot-Application/src/components/ChatApplication"
 
-function App() {
+export default function App() {
   return (
-    <NhostProvider nhost={nhost}>
-      <NhostApolloProvider nhost={nhost} apolloClient={apolloClient}>
-        <AuthWrapper>
-          <ChatApplication />
-        </AuthWrapper>
-      </NhostApolloProvider>
-    </NhostProvider>
-  );
-}
+    <Routes>
+      {/* Public routes */}
+      <Route path="/sign-in" element={<SignInPage />} />
+      <Route path="/sign-up" element={<SignUpPage />} />
 
-export default App;
+      {/* Protected chat route */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <ChatApplication />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
+  )
+}
