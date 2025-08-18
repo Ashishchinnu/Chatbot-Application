@@ -55,7 +55,6 @@ const wsLink = new GraphQLWsLink(
     url: graphqlWsUrl,
     connectionParams: async () => {
       const token = await nhost.auth.getAccessToken()
-      console.log("WS Access Token:", token) // 👈 Add this
       return {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
