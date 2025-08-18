@@ -1,18 +1,15 @@
 import React, { useState } from 'react'
-import { Session } from '@supabase/supabase-js'
-import { supabase } from '../config/supabase'
+import { useUserData, useSignOut } from '@nhost/react'
 import { ChatSidebar } from './chat/ChatSidebar'
 import { ChatView } from './chat/ChatView'
 
-interface ChatApplicationProps {
-  session: Session | null
-}
-
-export const ChatApplication: React.FC<ChatApplicationProps> = ({ session }) => {
+export const ChatApplication: React.FC = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
+  const user = useUserData()
+  const { signOut } = useSignOut()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await signOut()
   }
 
   return (
@@ -28,7 +25,7 @@ export const ChatApplication: React.FC<ChatApplicationProps> = ({ session }) => 
         
         <div className="flex items-center space-x-4">
           <div className="text-sm text-gray-600">
-            {session?.user?.email}
+            {user?.email}
           </div>
           <button
             onClick={handleSignOut}
@@ -46,13 +43,12 @@ export const ChatApplication: React.FC<ChatApplicationProps> = ({ session }) => 
           <ChatSidebar
             selectedChatId={selectedChatId}
             onChatSelect={setSelectedChatId}
-            session={session}
           />
         </div>
         
         {/* Main Chat Area */}
         <div className="flex-1 bg-white">
-          <ChatView chatId={selectedChatId} session={session} />
+          <ChatView chatId={selectedChatId} />
         </div>
       </div>
     </div>

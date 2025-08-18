@@ -1,103 +1,94 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useSubscription, useMutation } from '@apollo/client';
-import { MessageSquare, Sparkles, Zap } from 'lucide-react';
-import { Session } from '@supabase/supabase-js';
-import { MESSAGES_SUBSCRIPTION } from '../../graphql/queries';
-import { ADD_MESSAGE, SEND_MESSAGE_ACTION, UPDATE_CHAT_TIMESTAMP } from '../../graphql/mutations';
-import { Message } from '../../types';
-import { MessageBubble } from './MessageBubble';
-import { MessageInput } from './MessageInput';
-import { TypingIndicator } from './TypingIndicator';
+import React, { useEffect, useRef, useState } from 'react'
+import { useSubscription, useMutation } from '@apollo/client'
+import { MessageSquare, Sparkles, Zap } from 'lucide-react'
+import { MESSAGES_SUBSCRIPTION } from '../../graphql/queries'
+import { ADD_MESSAGE, SEND_MESSAGE_ACTION, UPDATE_CHAT_TIMESTAMP } from '../../graphql/mutations'
+import { Message } from '../../types'
+import { MessageBubble } from './MessageBubble'
+import { MessageInput } from './MessageInput'
+import { TypingIndicator } from './TypingIndicator'
 
 interface ChatViewProps {
-  chatId: string | null;
-  session: Session | null;
+  chatId: string | null
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ chatId, session }) => {
-  const [isTyping, setIsTyping] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+export const ChatView: React.FC<ChatViewProps> = ({ chatId }) => {
+  const [isTyping, setIsTyping] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
   const { data, loading, error } = useSubscription(MESSAGES_SUBSCRIPTION, {
     variables: { chatId },
-    skip: !chatId
-  });
+    skip: !chatId,
+  })
 
-  const [addMessage] = useMutation(ADD_MESSAGE);
-  const [sendMessageAction, { loading: isActionLoading }] = useMutation(SEND_MESSAGE_ACTION);
-  const [updateChatTimestamp] = useMutation(UPDATE_CHAT_TIMESTAMP);
+  const [addMessage] = useMutation(ADD_MESSAGE)
+  const [sendMessageAction, { loading: isActionLoading }] = useMutation(SEND_MESSAGE_ACTION)
+  const [updateChatTimestamp] = useMutation(UPDATE_CHAT_TIMESTAMP)
 
-  const messages: Message[] = data?.messages || [];
+  const messages: Message[] = data?.messages || []
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping]);
+    scrollToBottom()
+  }, [messages, isTyping])
 
   const handleSendMessage = async (content: string) => {
-    if (!chatId) return;
+    if (!chatId) return
 
     try {
-      // Add user message
+      // Save user’s message
       await addMessage({
         variables: {
           chatId,
           content,
-          isBot: false
-        }
-      });
+          isBot: false,
+        },
+      })
 
       // Update chat timestamp
-      await updateChatTimestamp({
-        variables: { chatId }
-      });
+      await updateChatTimestamp({ variables: { chatId } })
 
-      // Show typing indicator
-      setIsTyping(true);
+      // Show typing animation
+      setIsTyping(true)
 
-      // Call Hasura Action to trigger chatbot
+      // Call Hasura Action → triggers chatbot workflow
       const result = await sendMessageAction({
-        variables: {
-          chatId,
-          message: content
-        }
-      });
+        variables: { chatId, message: content },
+      })
 
-      setIsTyping(false);
+      setIsTyping(false)
 
       if (result.data?.sendMessage?.success) {
-        // The bot response should already be saved by the n8n workflow
-        // Update chat timestamp again
-        await updateChatTimestamp({
-          variables: { chatId }
-        });
+        // Bot’s response is inserted by backend automation (n8n, webhook, etc.)
+        await updateChatTimestamp({ variables: { chatId } })
       } else {
-        // Handle error case
+        // In case bot fails
         await addMessage({
           variables: {
             chatId,
-            content: 'Sorry, I encountered an error. Please try again.',
-            isBot: true
-          }
-        });
+            content: '⚠️ Sorry, I encountered an error. Please try again.',
+            isBot: true,
+          },
+        })
       }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setIsTyping(false);
-      
-      // Add error message
+    } catch (err) {
+      console.error('Error sending message:', err)
+      setIsTyping(false)
+
       await addMessage({
         variables: {
           chatId,
-          content: 'Sorry, I encountered an error. Please try again.',
-          isBot: true
-        }
-      });
+          content: '⚠️ Sorry, I encountered an error. Please try again.',
+          isBot: true,
+        },
+      })
     }
-  };
+  }
+
+  // ----------------------- UI -----------------------
 
   if (!chatId) {
     return (
@@ -108,7 +99,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId, session }) => {
           </div>
           <h3 className="text-2xl font-bold text-slate-900 mb-3">Welcome to AI Chat</h3>
           <p className="text-slate-600 max-w-md mx-auto leading-relaxed">
-            Select an existing conversation from the sidebar or create a new one to start chatting with our AI assistant.
+            Select an existing conversation from the sidebar or create a new one to start chatting
+            with our AI assistant.
           </p>
           <div className="mt-8 flex items-center justify-center space-x-6 text-sm text-slate-500">
             <div className="flex items-center space-x-2">
@@ -122,7 +114,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId, session }) => {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   if (loading) {
@@ -133,7 +125,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId, session }) => {
           <p className="text-slate-600">Loading conversation...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -148,7 +140,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId, session }) => {
           <p className="text-sm text-red-600">{error.message}</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -175,11 +167,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId, session }) => {
       </div>
 
       {/* Input */}
-      <MessageInput
-        onSendMessage={handleSendMessage}
-        isLoading={isActionLoading}
-        disabled={!chatId}
-      />
+      <MessageInput onSendMessage={handleSendMessage} isLoading={isActionLoading} disabled={!chatId} />
     </div>
-  );
-};
+  )
+}

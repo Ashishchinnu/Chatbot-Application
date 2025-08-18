@@ -1,58 +1,53 @@
-import React from 'react';
-import { useSubscription, useMutation } from '@apollo/client';
-import { Plus, MessageCircle, User, LogOut, Sparkles } from 'lucide-react';
-import { Session } from '@supabase/supabase-js';
-import { supabase } from '../../config/supabase';
-import { CHATS_SUBSCRIPTION } from '../../graphql/queries';
-import { CREATE_CHAT } from '../../graphql/mutations';
-import { Chat } from '../../types';
-import { LoadingSpinner } from '../ui/LoadingSpinner';
+import React from 'react'
+import { useSubscription, useMutation } from '@apollo/client'
+import { Plus, MessageCircle, User, LogOut, Sparkles } from 'lucide-react'
+import { useUserData, useSignOut } from '@nhost/react'
+
+import { CHATS_SUBSCRIPTION } from '../../graphql/queries'
+import { CREATE_CHAT } from '../../graphql/mutations'
+import { Chat } from '../../types'
+import { LoadingSpinner } from '../ui/LoadingSpinner'
 
 interface ChatSidebarProps {
-  selectedChatId: string | null;
-  onChatSelect: (chatId: string) => void;
-  session: Session | null;
+  selectedChatId: string | null
+  onChatSelect: (chatId: string) => void
 }
 
-export const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
-  selectedChatId, 
-  onChatSelect,
-  session
-}) => {
-  const { data, loading, error } = useSubscription(CHATS_SUBSCRIPTION);
+export const ChatSidebar: React.FC<ChatSidebarProps> = ({ selectedChatId, onChatSelect }) => {
+  const user = useUserData()
+  const { signOut } = useSignOut()
+
+  const { data, loading, error } = useSubscription(CHATS_SUBSCRIPTION)
   const [createChat, { loading: isCreatingChat }] = useMutation(CREATE_CHAT, {
     onCompleted: (data) => {
       if (data.insert_chats_one) {
-        onChatSelect(data.insert_chats_one.id);
+        onChatSelect(data.insert_chats_one.id)
       }
-    }
-  });
+    },
+  })
 
-  const chats: Chat[] = data?.chats || [];
+  const chats: Chat[] = data?.chats || []
 
   const handleNewChat = async () => {
-    const title = `Chat ${new Date().toLocaleDateString()}`;
-    await createChat({ variables: { title } });
-  };
+    const title = `Chat ${new Date().toLocaleDateString()}`
+    await createChat({ variables: { title } })
+  }
 
   const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffHours = diffMs / (1000 * 60 * 60)
+
     if (diffHours < 24) {
-      return date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     }
-    
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
+
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
 
   return (
     <div className="h-full bg-gradient-to-b from-slate-50 to-white border-r border-slate-200 flex flex-col shadow-sm">
@@ -70,14 +65,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             disabled={isCreatingChat}
             className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 disabled:opacity-50 hover:scale-105"
           >
-            {isCreatingChat ? (
-              <LoadingSpinner size="sm" />
-            ) : (
-              <Plus className="h-5 w-5" />
-            )}
+            {isCreatingChat ? <LoadingSpinner size="sm" /> : <Plus className="h-5 w-5" />}
           </button>
         </div>
-        
+
         <button
           onClick={handleNewChat}
           disabled={isCreatingChat}
@@ -120,21 +111,27 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 }`}
               >
                 <div className="flex justify-between items-start mb-1">
-                  <h3 className={`font-medium text-sm truncate ${
-                    selectedChatId === chat.id ? 'text-blue-900' : 'text-slate-900'
-                  }`}>
+                  <h3
+                    className={`font-medium text-sm truncate ${
+                      selectedChatId === chat.id ? 'text-blue-900' : 'text-slate-900'
+                    }`}
+                  >
                     {chat.title}
                   </h3>
-                  <span className={`text-xs flex-shrink-0 ml-2 ${
-                    selectedChatId === chat.id ? 'text-blue-600' : 'text-slate-500'
-                  }`}>
+                  <span
+                    className={`text-xs flex-shrink-0 ml-2 ${
+                      selectedChatId === chat.id ? 'text-blue-600' : 'text-slate-500'
+                    }`}
+                  >
                     {formatTime(chat.updated_at)}
                   </span>
                 </div>
                 {chat.messages[0] && (
-                  <p className={`text-xs truncate ${
-                    selectedChatId === chat.id ? 'text-blue-700' : 'text-slate-500'
-                  }`}>
+                  <p
+                    className={`text-xs truncate ${
+                      selectedChatId === chat.id ? 'text-blue-700' : 'text-slate-500'
+                    }`}
+                  >
                     {chat.messages[0].is_bot ? '🤖 ' : ''}
                     {chat.messages[0].content}
                   </p>
@@ -154,16 +151,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-slate-900 truncate">
-                {session?.user?.email}
+                {user?.email}
               </p>
               <p className="text-xs text-emerald-600 flex items-center">
-                <div className="h-2 w-2 bg-emerald-500 rounded-full mr-1 animate-pulse"></div>
+                <span className="h-2 w-2 bg-emerald-500 rounded-full mr-1 animate-pulse"></span>
                 Online
               </p>
             </div>
           </div>
           <button
-            onClick={() => supabase.auth.signOut()}
+            onClick={() => signOut()}
             className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-105"
             title="Sign out"
           >
@@ -172,5 +169,5 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

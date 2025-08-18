@@ -1,40 +1,29 @@
+// src/components/auth/SignInPage.tsx
 import * as React from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, MessageCircle, Eye, EyeOff } from 'lucide-react'
-import { supabase } from '../../config/supabase'
+import { useSignInEmailPassword, useAuthenticationStatus } from '@nhost/react'
 
 export default function SignInPage() {
   const navigate = useNavigate()
-  const [isLoading, setIsLoading] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
+  const { signInEmailPassword, isLoading, isError, error } = useSignInEmailPassword()
+  const { isAuthenticated } = useAuthenticationStatus()
   const [showPassword, setShowPassword] = React.useState(false)
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-
     const formData = new FormData(e.currentTarget)
     const email = String(formData.get('email') || '')
     const password = String(formData.get('password') || '')
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) {
-        setError(error.message)
-      } else {
-        navigate('/', { replace: true })
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
-    } finally {
-      setIsLoading(false)
-    }
+    await signInEmailPassword(email, password)
+    // don't navigate here – let auth state redirect below
   }
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
@@ -57,9 +46,7 @@ export default function SignInPage() {
                 Email address
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
+                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <input
                   name="email"
                   type="email"
@@ -77,9 +64,7 @@ export default function SignInPage() {
                 Password
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <input
                   name="password"
                   type={showPassword ? 'text' : 'password'}
@@ -93,19 +78,15 @@ export default function SignInPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
             {/* Error Message */}
-            {error && (
+            {isError && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-                {error}
+                {error?.message}
               </div>
             )}
 
@@ -129,7 +110,7 @@ export default function SignInPage() {
           {/* Sign Up Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link 
                 to="/sign-up" 
                 className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
