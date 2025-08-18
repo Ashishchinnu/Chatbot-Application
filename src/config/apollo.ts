@@ -6,24 +6,32 @@ import { getMainDefinition } from '@apollo/client/utilities'
 import { createClient } from 'graphql-ws'
 import { supabase } from './supabase'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const graphqlUrl = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:8080/v1/graphql'
+const graphqlWsUrl = import.meta.env.VITE_GRAPHQL_WS_URL || 'ws://localhost:8080/v1/graphql'
+const adminSecret = import.meta.env.VITE_HASURA_ADMIN_SECRET
 
 // HTTP link for queries and mutations
 const httpLink = createHttpLink({
-  uri: `${supabaseUrl}/graphql/v1`,
+  uri: graphqlUrl,
 })
 
-// Auth link to attach JWT token
+// Auth link to attach JWT token and required headers
 const authLink = setContext(async (_, { headers }) => {
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
+  const userId = session?.user?.id
 
   return {
     headers: {
       ...headers,
-      authorization: token ? `Bearer ${token}` : `Bearer ${supabaseAnonKey}`,
-      apikey: supabaseAnonKey,
+      ...(token && {
+        'Authorization': `Bearer ${token}`,
+        'x-hasura-user-id': userId,
+        'x-hasura-default-role': 'user',
+        'x-hasura-allowed-roles': '["user"]',
+      }),
+      ...(adminSecret && { 'x-hasura-admin-secret': adminSecret }),
+      'Content-Type': 'application/json',
     },
   }
 })
@@ -31,15 +39,21 @@ const authLink = setContext(async (_, { headers }) => {
 // WebSocket link for subscriptions
 const wsLink = new GraphQLWsLink(
   createClient({
-    url: `${supabaseUrl.replace('https://', 'wss://').replace('http://', 'ws://')}/graphql/v1`,
+    url: graphqlWsUrl,
     connectionParams: async () => {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
+      const userId = session?.user?.id
 
       return {
         headers: {
-          authorization: token ? `Bearer ${token}` : `Bearer ${supabaseAnonKey}`,
-          apikey: supabaseAnonKey,
+          ...(token && {
+            'Authorization': `Bearer ${token}`,
+            'x-hasura-user-id': userId,
+            'x-hasura-default-role': 'user',
+            'x-hasura-allowed-roles': '["user"]',
+          }),
+          ...(adminSecret && { 'x-hasura-admin-secret': adminSecret }),
         },
       }
     },
@@ -47,14 +61,21 @@ const wsLink = new GraphQLWsLink(
 )
 
 // Error handling
-const errorLink = onError(({ graphQLErrors, networkError }) => {
+const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
   if (graphQLErrors) {
     graphQLErrors.forEach(({ message, locations, path }) => {
       console.error(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`)
     })
   }
+  
   if (networkError) {
     console.error(`[Network error]: ${networkError}`)
+    
+    // Handle authentication errors
+    if ('statusCode' in networkError && networkError.statusCode === 401) {
+      // Redirect to login or refresh token
+      console.log('Authentication error - redirecting to login')
+    }
   }
 })
 
@@ -70,9 +91,32 @@ const splitLink = split(
 
 export const apolloClient = new ApolloClient({
   link: splitLink,
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          chats: {
+            merge(existing = [], incoming) {
+              return incoming
+            }
+          },
+          messages: {
+            merge(existing = [], incoming) {
+              return incoming
+            }
+          }
+        }
+      }
+    }
+  }),
   defaultOptions: {
-    watchQuery: { errorPolicy: 'all' },
-    query: { errorPolicy: 'all' },
+    watchQuery: { 
+      errorPolicy: 'all',
+      fetchPolicy: 'cache-and-network'
+    },
+    query: { 
+      errorPolicy: 'all',
+      fetchPolicy: 'cache-first'
+    },
   },
 })
