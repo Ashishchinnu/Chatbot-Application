@@ -1,8 +1,11 @@
 import { Navigate } from 'react-router-dom'
-import { useAuthenticationStatus } from '@nhost/react'
+import { Session } from '@supabase/supabase-js'
 
-export default function ProtectedRoute({ children }: { children: JSX.Element }) {
-  const { isAuthenticated, isLoading } = useAuthenticationStatus()
-  if (isLoading) return null // or a spinner
-  return isAuthenticated ? children : <Navigate to="/sign-in" replace />
+interface ProtectedRouteProps {
+  children: JSX.Element
+  session: Session | null
+}
+
+export default function ProtectedRoute({ children, session }: ProtectedRouteProps) {
+  return session ? children : <Navigate to="/sign-in" replace />
 }

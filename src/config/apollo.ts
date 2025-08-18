@@ -1,37 +1,45 @@
-// src/config/apollo.ts
 import { ApolloClient, InMemoryCache, createHttpLink, split, from } from '@apollo/client'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { createClient } from 'graphql-ws'
-import { nhost } from "d:/Chatbot-Application/src/config/nhost"  // <-- make sure you export default in nhost.ts
+import { supabase } from './supabase'
 
-// HTTP link (queries + mutations)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+// HTTP link for queries and mutations
 const httpLink = createHttpLink({
-  uri: `${nhost.graphql.getUrl()}`,
+  uri: `${supabaseUrl}/graphql/v1`,
 })
 
-// Auth link → attach JWT token dynamically
+// Auth link to attach JWT token
 const authLink = setContext(async (_, { headers }) => {
-  const token = await nhost.auth.getAccessToken()
+  const { data: { session } } = await supabase.auth.getSession()
+  const token = session?.access_token
+
   return {
     headers: {
       ...headers,
-      authorization: token ? `Bearer ${token}` : '',
+      authorization: token ? `Bearer ${token}` : `Bearer ${supabaseAnonKey}`,
+      apikey: supabaseAnonKey,
     },
   }
 })
 
-// WebSocket link (subscriptions)
+// WebSocket link for subscriptions
 const wsLink = new GraphQLWsLink(
   createClient({
-    url: nhost.graphql.getUrl().replace('http', 'ws'),
+    url: `${supabaseUrl.replace('https://', 'wss://').replace('http://', 'ws://')}/graphql/v1`,
     connectionParams: async () => {
-      const token = await nhost.auth.getAccessToken()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
       return {
         headers: {
-          authorization: token ? `Bearer ${token}` : '',
+          authorization: token ? `Bearer ${token}` : `Bearer ${supabaseAnonKey}`,
+          apikey: supabaseAnonKey,
         },
       }
     },
