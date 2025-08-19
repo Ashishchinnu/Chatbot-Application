@@ -80,7 +80,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "Bearer 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" },
+            { "name": "Authorization", "value": "Bearer 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" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
