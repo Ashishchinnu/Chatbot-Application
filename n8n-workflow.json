@@ -16,7 +16,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// Extract data from webhook\nconst chatId = $json.body.input.chat_id;\nconst userId = $json.body.session_variables['x-hasura-user-id'];\nconst message = $json.body.input.message;\n\nreturn {\n  chat_id: chatId,\n  user_id: userId,\n  message: message,\n  hasura_headers: {\n    'x-hasura-admin-secret': 'your-admin-secret',\n    'Content-Type': 'application/json'\n  }\n};"
+        "functionCode": "// Extract data from webhook\nconst chatId = $json.body.input.chat_id;\nconst userId = $json.body.session_variables['x-hasura-user-id'];\nconst message = $json.body.input.message;\n\nreturn {\n  chat_id: chatId,\n  user_id: userId,\n  message: message,\n  hasura_headers: {\n    'x-hasura-admin-secret': 'h!zkCmx_qWs(Ht$,ZD!5MV#0he4uWXaO',\n    'Content-Type': 'application/json'\n  }\n};"
       },
       "id": "extract-data",
       "name": "Extract Data",
@@ -26,20 +26,14 @@
     },
     {
       "parameters": {
-        "url": "https://your-nhost-subdomain.nhost.run/v1/graphql",
+        "url": "https://qkemmskybfazjkdanixg.hasura.ap-south-1.nhost.run/v1/graphql",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "x-hasura-admin-secret",
-              "value": "your-admin-secret"
-            }
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-hasura-admin-secret", "value": "h!zkCmx_qWs(Ht$,ZD!5MV#0he4uWXaO" }
           ]
         },
         "sendBody": true,
@@ -54,8 +48,7 @@
               "value": "={{ { \"chatId\": $json.chat_id } }}"
             }
           ]
-        },
-        "options": {}
+        }
       },
       "id": "validate-chat",
       "name": "Validate Chat Ownership",
@@ -87,27 +80,15 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer YOUR_OPENROUTER_API_KEY"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
+            { "name": "Authorization", "value": "Bearer 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" },
+            { "name": "Content-Type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            {
-              "name": "model",
-              "value": "meta-llama/llama-3.2-3b-instruct:free"
-            },
-            {
-              "name": "messages",
-              "value": "={{ [{ \"role\": \"user\", \"content\": $('Extract Data').first().json.message }] }}"
-            }
+            { "name": "model", "value": "meta-llama/llama-3.2-3b-instruct:free" },
+            { "name": "messages", "value": "={{ [{ \"role\": \"user\", \"content\": $('Extract Data').first().json.message }] }}" }
           ]
         }
       },
@@ -119,18 +100,12 @@
     },
     {
       "parameters": {
-        "url": "https://your-nhost-subdomain.nhost.run/v1/graphql",
+        "url": "https://qkemmskybfazjkdanixg.hasura.ap-south-1.nhost.run/v1/graphql",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "x-hasura-admin-secret",
-              "value": "your-admin-secret"
-            }
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-hasura-admin-secret", "value": "h!zkCmx_qWs(Ht$,ZD!5MV#0he4uWXaO" }
           ]
         },
         "sendBody": true,
@@ -177,78 +152,16 @@
     }
   ],
   "connections": {
-    "Webhook": {
-      "main": [
-        [
-          {
-            "node": "Extract Data",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extract Data": {
-      "main": [
-        [
-          {
-            "node": "Validate Chat Ownership",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate Chat Ownership": {
-      "main": [
-        [
-          {
-            "node": "Check Ownership",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
+    "Webhook": { "main": [ [ { "node": "Extract Data", "type": "main", "index": 0 } ] ] },
+    "Extract Data": { "main": [ [ { "node": "Validate Chat Ownership", "type": "main", "index": 0 } ] ] },
+    "Validate Chat Ownership": { "main": [ [ { "node": "Check Ownership", "type": "main", "index": 0 } ] ] },
     "Check Ownership": {
       "main": [
-        [
-          {
-            "node": "OpenRouter API",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Error Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [ { "node": "OpenRouter API", "type": "main", "index": 0 } ],
+        [ { "node": "Error Response", "type": "main", "index": 0 } ]
       ]
     },
-    "OpenRouter API": {
-      "main": [
-        [
-          {
-            "node": "Save Bot Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Save Bot Response": {
-      "main": [
-        [
-          {
-            "node": "Success Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
+    "OpenRouter API": { "main": [ [ { "node": "Save Bot Response", "type": "main", "index": 0 } ] ] },
+    "Save Bot Response": { "main": [ [ { "node": "Success Response", "type": "main", "index": 0 } ] ] }
   }
 }

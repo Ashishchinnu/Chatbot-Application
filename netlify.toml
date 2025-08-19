@@ -11,9 +11,9 @@
   status = 200
 
 [context.production.environment]
-  VITE_NHOST_SUBDOMAIN = ""
-  VITE_NHOST_REGION = ""
+  VITE_NHOST_SUBDOMAIN = "qkemmskybfazjkdanixg"
+  VITE_NHOST_REGION = "ap-south-1"
 
 [context.deploy-preview.environment]  
-  VITE_NHOST_SUBDOMAIN = ""
-  VITE_NHOST_REGION = ""
+  VITE_NHOST_SUBDOMAIN = "qkemmskybfazjkdanixg"
+  VITE_NHOST_REGION = "ap-south-1"
