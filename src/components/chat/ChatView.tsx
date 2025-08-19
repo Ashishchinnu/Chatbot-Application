@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useSubscription, useMutation } from '@apollo/client'
+import { useQuery, useMutation } from '@apollo/client'
 import { MessageSquare, Sparkles, Zap } from 'lucide-react'
-import { MESSAGES_SUBSCRIPTION } from '../../graphql/queries'
+
+import { MESSAGES_QUERY } from '../../graphql/queries'
 import { ADD_MESSAGE, SEND_MESSAGE_ACTION, UPDATE_CHAT_TIMESTAMP } from '../../graphql/mutations'
 import { Message } from '../../types'
 import { MessageBubble } from './MessageBubble'
@@ -16,9 +17,11 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId }) => {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const { data, loading, error } = useSubscription(MESSAGES_SUBSCRIPTION, {
+  // ✅ useQuery with polling
+  const { data, loading, error, refetch } = useQuery(MESSAGES_QUERY, {
     variables: { chatId },
     skip: !chatId,
+    pollInterval: 3000, // polls messages every 3s
   })
 
   const [addMessage] = useMutation(ADD_MESSAGE)
@@ -62,10 +65,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId }) => {
       setIsTyping(false)
 
       if (result.data?.sendMessage?.success) {
-        // Bot’s response is inserted by backend automation (n8n, webhook, etc.)
         await updateChatTimestamp({ variables: { chatId } })
       } else {
-        // In case bot fails
         await addMessage({
           variables: {
             chatId,
@@ -74,6 +75,9 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId }) => {
           },
         })
       }
+
+      // ✅ Force refresh messages instantly after sending
+      await refetch()
     } catch (err) {
       console.error('Error sending message:', err)
       setIsTyping(false)
@@ -85,11 +89,13 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId }) => {
           isBot: true,
         },
       })
+
+      // ✅ Ensure we show the latest even if an error occurs
+      await refetch()
     }
   }
 
   // ----------------------- UI -----------------------
-
   if (!chatId) {
     return (
       <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
@@ -167,7 +173,11 @@ export const ChatView: React.FC<ChatViewProps> = ({ chatId }) => {
       </div>
 
       {/* Input */}
-      <MessageInput onSendMessage={handleSendMessage} isLoading={isActionLoading} disabled={!chatId} />
+      <MessageInput
+        onSendMessage={handleSendMessage}
+        isLoading={isActionLoading}
+        disabled={!chatId}
+      />
     </div>
   )
 }

@@ -1,7 +1,9 @@
-import { gql } from '@apollo/client';
+// src/graphql/queries.ts
+import { gql } from '@apollo/client'
 
-export const GET_CHATS = gql`
-  query GetChats {
+// ✅ Query to fetch chats (replaces subscription for HTTP + polling)
+export const CHATS_QUERY = gql`
+  query Chats {
     chats(order_by: { updated_at: desc }) {
       id
       title
@@ -15,10 +17,11 @@ export const GET_CHATS = gql`
       }
     }
   }
-`;
+`
 
-export const GET_MESSAGES = gql`
-  query GetMessages($chatId: uuid!) {
+// ✅ Query to fetch messages (replaces subscription for HTTP + polling)
+export const MESSAGES_QUERY = gql`
+  query Messages($chatId: uuid!) {
     messages(
       where: { chat_id: { _eq: $chatId } }
       order_by: { created_at: asc }
@@ -30,8 +33,9 @@ export const GET_MESSAGES = gql`
       user_id
     }
   }
-`;
+`
 
+// (keep these if you still want subscription versions as backup)
 export const MESSAGES_SUBSCRIPTION = gql`
   subscription MessagesSubscription($chatId: uuid!) {
     messages(
@@ -45,7 +49,7 @@ export const MESSAGES_SUBSCRIPTION = gql`
       user_id
     }
   }
-`;
+`
 
 export const CHATS_SUBSCRIPTION = gql`
   subscription ChatsSubscription {
@@ -62,4 +66,4 @@ export const CHATS_SUBSCRIPTION = gql`
       }
     }
   }
-`;
+`

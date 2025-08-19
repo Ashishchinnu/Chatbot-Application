@@ -1,9 +1,9 @@
 import React from 'react'
-import { useSubscription, useMutation } from '@apollo/client'
+import { useQuery, useMutation } from '@apollo/client'
 import { Plus, MessageCircle, User, LogOut, Sparkles } from 'lucide-react'
 import { useUserData, useSignOut } from '@nhost/react'
 
-import { CHATS_SUBSCRIPTION } from '../../graphql/queries'
+import { CHATS_QUERY } from '../../graphql/queries'   // ⬅️ change this
 import { CREATE_CHAT } from '../../graphql/mutations'
 import { Chat } from '../../types'
 import { LoadingSpinner } from '../ui/LoadingSpinner'
@@ -17,7 +17,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ selectedChatId, onChat
   const user = useUserData()
   const { signOut } = useSignOut()
 
-  const { data, loading, error } = useSubscription(CHATS_SUBSCRIPTION)
+  // ⬇️ replaced useSubscription
+  const { data, loading, error } = useQuery(CHATS_QUERY, {
+    pollInterval: 5000, // refresh every 5 seconds
+  })
+
   const [createChat, { loading: isCreatingChat }] = useMutation(CREATE_CHAT, {
     onCompleted: (data) => {
       if (data.insert_chats_one) {

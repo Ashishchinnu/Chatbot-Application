@@ -2,8 +2,9 @@
 import { Routes, Route } from 'react-router-dom'
 import { ApolloProvider } from '@apollo/client'
 import { NhostProvider, useAuthenticationStatus } from '@nhost/react'
-import { nhost } from './config/nhost'
-import { apolloClient } from './config/apollo'
+//import React from 'react'
+import { nhost, apolloClient } from './config/apollo'
+
 
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import SignInPage from './components/auth/SignInPage'
@@ -13,7 +14,22 @@ import { LoadingSpinner } from './components/ui/LoadingSpinner'
 
 function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus()
-
+  // React.useEffect(() => {
+  //   const logJwt = async () => {
+  //     if (isAuthenticated) {
+  //       const token = await nhost.auth.getAccessToken()
+  //       if (token) {
+  //         console.log("Raw JWT:", token)
+  //         // 🔑 Decode JWT payload
+  //         const decoded = JSON.parse(atob(token.split('.')[1]))
+  //         console.log("Decoded JWT:", decoded)
+  //       } else {
+  //         console.log("No JWT available yet")
+  //       }
+  //     }
+  //   }
+  //   logJwt()
+  // }, [isAuthenticated])
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -46,6 +62,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
+    
     <NhostProvider nhost={nhost}>
       <ApolloProvider client={apolloClient}>
         <AppRoutes />
